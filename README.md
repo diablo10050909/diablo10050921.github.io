@@ -1,0 +1,1 @@
+# diablo10050921.github.io
