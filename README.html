@@ -2,205 +2,71 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="UTF-8">
-  <title>Chapter 1</title>
+  <title>모바일 face-api.js</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js"></script>
+  <style>
+    video, canvas {
+      width: 100%;
+      height: auto;
+    }
+    body {
+      margin: 0;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
 </head>
 <body>
-  <h1>Chapter 1</h1>
-  <p>
-    📘 Chapter 1. 📚 HTML 태그 총정리<br><br>
+  <video id="video" autoplay muted playsinline></video>
+  <script>
+    async function setup() {
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models')
+      await faceapi.nets.faceLandmark68Net.loadFromUri('/models')
+      await faceapi.nets.faceExpressionNet.loadFromUri('/models')
+      await faceapi.nets.ageGenderNet.loadFromUri('/models')
 
-1. 🏗️ 문서 구조 태그<br>
-태그<br>
-설명<br>
-&lt;!DOCTYPE&gt;<br>
-문서 타입 선언 (HTML5 기준: &lt;!DOCTYPE html&gt;)<br>
-&lt;html&gt;<br>
-HTML 문서의 루트<br>
-&lt;head&gt;<br>
-문서의 메타 정보 영역<br>
-&lt;meta&gt;<br>
-문자셋, 설명, 키워드 등 설정<br>
-&lt;title&gt;<br>
-문서 제목 (탭에 표시됨)<br>
-&lt;body&gt;<br>
-화면에 보이는 콘텐츠 부분<br><br>
+      const video = document.getElementById('video')
 
-2. 📝 텍스트 콘텐츠 태그<br>
-태그<br>
-설명<br>
-&lt;h1&gt; ~ &lt;h6&gt;<br>
-제목 (1이 가장 크고 6이 가장 작음)<br>
-&lt;p&gt;<br>
-문단<br>
-&lt;br&gt;<br>
-줄바꿈 (break line)<br>
-&lt;hr&gt;<br>
-수평선 (구분선)<br>
-&lt;strong&gt;<br>
-굵은 글씨 (의미 강조)<br>
-&lt;b&gt;<br>
-굵은 글씨 (단순 스타일)<br>
-&lt;em&gt;<br>
-기울임 (의미 강조)<br>
-&lt;i&gt;<br>
-기울임 (단순 스타일)<br>
-&lt;mark&gt;<br>
-형광펜 표시<br>
-&lt;blockquote&gt;<br>
-인용 문단<br>
-&lt;code&gt;<br>
-코드 블록<br>
-&lt;pre&gt;<br>
-서식을 그대로 유지한 텍스트<br><br>
+      navigator.mediaDevices.getUserMedia({ video: {} })
+        .then(stream => video.srcObject = stream)
 
-3. 🔗 링크 및 미디어 태그<br>
-태그<br>
-설명<br>
-&lt;a href="url"&gt;<br>
-하이퍼링크 (anchor)<br>
-&lt;img src="경로"&gt;<br>
-이미지<br>
-&lt;audio&gt;<br>
-오디오 삽입<br>
-&lt;video&gt;<br>
-비디오 삽입<br>
-&lt;source&gt;<br>
-오디오/비디오 파일 경로<br>
-&lt;iframe&gt;<br>
-다른 페이지를 삽입<br><br>
+      video.addEventListener('play', () => {
+        const canvas = faceapi.createCanvasFromMedia(video)
+        document.body.append(canvas)
+        const displaySize = { width: video.videoWidth, height: video.videoHeight }
+        faceapi.matchDimensions(canvas, displaySize)
 
-4. 🧱 레이아웃/구조 태그 (HTML5 시멘틱 태그)<br>
-태그<br>
-설명<br>
-&lt;div&gt;<br>
-구역을 나눌 때 사용하는 기본 컨테이너<br>
-&lt;span&gt;<br>
-텍스트 일부에 스타일을 적용할 때 사용<br>
-&lt;header&gt;<br>
-머리글 영역<br>
-&lt;nav&gt;<br>
-내비게이션 링크 영역<br>
-&lt;main&gt;<br>
-본문 주요 콘텐츠<br>
-&lt;section&gt;<br>
-논리적 구획 (섹션)<br>
-&lt;article&gt;<br>
-독립적인 기사 콘텐츠<br>
-&lt;aside&gt;<br>
-사이드 콘텐츠 (광고, 링크 등)<br>
-&lt;footer&gt;<br>
-꼬리말 영역<br><br>
+        setInterval(async () => {
+          const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions())
+            .withFaceLandmarks()
+            .withFaceExpressions()
+            .withAgeAndGender()
 
-5. 📋 목록 태그<br>
-태그<br>
-설명<br>
-&lt;ul&gt;<br>
-순서 없는 목록 (bullet)<br>
-&lt;ol&gt;<br>
-순서 있는 목록 (1, 2, 3)<br>
-&lt;li&gt;<br>
-리스트 항목 (ul/ol 내부에서 사용)<br>
-&lt;dl&gt;<br>
-정의 목록<br>
-&lt;dt&gt;<br>
-정의 목록 제목<br>
-&lt;dd&gt;<br>
-정의 목록 설명<br><br>
+          const resized = faceapi.resizeResults(detections, displaySize)
+          canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height)
+          faceapi.draw.drawDetections(canvas, resized)
+          faceapi.draw.drawFaceLandmarks(canvas, resized)
+          faceapi.draw.drawFaceExpressions(canvas, resized)
 
-6. 🧾 테이블 태그<br>
-태그<br>
-설명<br>
-&lt;table&gt;<br>
-표 생성<br>
-&lt;tr&gt;<br>
-행 (table row)<br>
-&lt;td&gt;<br>
-셀 (table data)<br>
-&lt;th&gt;<br>
-셀 (table header)<br>
-&lt;thead&gt;<br>
-표의 머리글 그룹<br>
-&lt;tbody&gt;<br>
-본문 그룹<br>
-&lt;tfoot&gt;<br>
-표의 바닥글 그룹<br>
-&lt;caption&gt;<br>
-표 제목<br>
-&lt;col&gt;, &lt;colgroup&gt;<br>
-열 스타일 지정<br><br>
+          resized.forEach(detection => {
+            const { age, gender, genderProbability } = detection
+            const ctx = canvas.getContext('2d')
+            const x = detection.detection.box.x
+            const y = detection.detection.box.y
+            ctx.fillStyle = 'red'
+            ctx.font = '16px Arial'
+            ctx.fillText(`${gender} (${Math.round(genderProbability * 100)}%)`, x, y - 20)
+            ctx.fillText(`나이: ${Math.round(age)}`, x, y - 5)
+          })
+        }, 500)
+      })
+    }
 
-7. 🧠 폼(Form) 및 입력 태그<br>
-태그<br>
-설명<br>
-&lt;form&gt;<br>
-폼 전체를 감싸는 태그<br>
-&lt;input&gt;<br>
-사용자 입력 필드<br>
-&lt;textarea&gt;<br>
-여러 줄 입력 필드<br>
-&lt;select&gt;<br>
-드롭다운 메뉴<br>
-&lt;option&gt;<br>
-선택 항목<br>
-&lt;label&gt;<br>
-입력 필드의 이름 지정<br>
-&lt;button&gt;<br>
-버튼 생성<br>
-&lt;fieldset&gt;<br>
-폼 영역 구분<br>
-&lt;legend&gt;<br>
-필드셋 제목<br>
-&lt;datalist&gt;<br>
-자동완성 목록<br>
-&lt;output&gt;<br>
-계산 결과 등 출력 표시<br><br>
-
-&lt;input&gt; 태그 속성에 따라 다양한 종류 가능:<br>
-type="text", "password", "checkbox", "radio", "submit", "reset", "file", "email", "date" 등<br><br>
-
-8. ⚙️ 스크립트 및 스타일 태그<br>
-태그<br>
-설명<br>
-&lt;style&gt;<br>
-문서 내 CSS 작성<br>
-&lt;link&gt;<br>
-외부 CSS 파일 연결<br>
-&lt;script&gt;<br>
-자바스크립트 작성<br>
-&lt;noscript&gt;<br>
-JS 미지원 시 대체 내용<br><br>
-
-9. 🧼 의미 없는 태그 (비시멘틱)<br>
-태그<br>
-설명<br>
-&lt;div&gt;<br>
-의미 없는 컨테이너<br>
-&lt;span&gt;<br>
-의미 없는 인라인 요소 (스타일용)<br><br>
-
-10. 📦 기타 특수 태그<br>
-태그<br>
-설명<br>
-&lt;template&gt;<br>
-자바스크립트에서 사용하는 HTML 조각 템플릿<br>
-&lt;canvas&gt;<br>
-자바스크립트로 그래픽 그리기<br>
-&lt;svg&gt;<br>
-벡터 그래픽 정의<br>
-&lt;details&gt;<br>
-토글 가능한 섹션<br>
-&lt;summary&gt;<br>
-details 태그 요약 제목<br>
-&lt;dialog&gt;<br>
-대화상자 모달 창<br><br>
-
-✅ 부록: 태그 속성의 예<br>
-모든 HTML 태그는 속성(attribute)을 가질 수 있습니다.<br>
-&lt;a href="https://naver.com" target="_blank"&gt;네이버로 이동&lt;/a&gt;<br><br>
-
-href = 이동할 주소<br>
-target="_blank" = 새 창으로 열기<br>
-  </p>
+    setup()
+  </script>
 </body>
-  </html>
+</html>
